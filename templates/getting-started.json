@@ -1,0 +1,55 @@
+{
+  "format": "quick-paste-library",
+  "version": 1,
+  "groups": [
+    {
+      "id": "95ac204b-7a2b-4692-ad8f-b6ecd0297f92",
+      "name": "上手示例",
+      "order": 1
+    }
+  ],
+  "snippets": [
+    {
+      "id": "06074510-54d7-45c2-9753-81096cfaf449",
+      "content": "你好，已收到你的消息，我会尽快回复。",
+      "groupId": "95ac204b-7a2b-4692-ad8f-b6ecd0297f92",
+      "favorite": false,
+      "order": 0
+    },
+    {
+      "id": "c2017f1e-bf09-4ec2-b28a-0a17b6f0ecdb",
+      "content": "感谢反馈！请提供操作步骤和软件版本，方便进一步排查。",
+      "groupId": "95ac204b-7a2b-4692-ad8f-b6ecd0297f92",
+      "favorite": false,
+      "order": 1
+    },
+    {
+      "id": "aecff3ac-22dd-4ddf-b70c-8ea8c29b0d48",
+      "content": "今天的进展已更新，有需要协助的地方请随时联系。",
+      "groupId": "95ac204b-7a2b-4692-ad8f-b6ecd0297f92",
+      "favorite": false,
+      "order": 2
+    },
+    {
+      "id": "c8159ef9-a9b5-4c28-bb66-e5289329721a",
+      "content": "请将以下内容改写得清晰、简洁，保留事实和原意：",
+      "groupId": "95ac204b-7a2b-4692-ad8f-b6ecd0297f92",
+      "favorite": false,
+      "order": 3
+    },
+    {
+      "id": "932b7a75-b6f3-4bb6-a338-4eb7cd3a661c",
+      "content": "请把以下任务整理成待办清单，注明负责人和截止时间：",
+      "groupId": "95ac204b-7a2b-4692-ad8f-b6ecd0297f92",
+      "favorite": false,
+      "order": 4
+    },
+    {
+      "id": "4abbc51c-d0d6-4ff4-8bc0-b599637ecad7",
+      "content": "这是我的第一条快捷输入，剪贴板里的内容依然保留。",
+      "groupId": "95ac204b-7a2b-4692-ad8f-b6ecd0297f92",
+      "favorite": false,
+      "order": 5
+    }
+  ]
+}

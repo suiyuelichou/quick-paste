@@ -1,0 +1,11 @@
+interface IconProps { size?: number; className?: string }
+const base = (size: number | undefined) => ({ width: size ?? 18, height: size ?? 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const })
+
+export const SearchIcon = ({ size }: IconProps): JSX.Element => <svg {...base(size)}><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+export const StarIcon = ({ size }: IconProps): JSX.Element => <svg {...base(size)}><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>
+export const PlusIcon = ({ size }: IconProps): JSX.Element => <svg {...base(size)}><path d="M12 5v14M5 12h14"/></svg>
+export const TrashIcon = ({ size }: IconProps): JSX.Element => <svg {...base(size)}><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/></svg>
+export const EditIcon = ({ size }: IconProps): JSX.Element => <svg {...base(size)}><path d="m4 16-.8 4 4-.8L18 8.4 14.6 5 4 16Z"/><path d="m12.8 6.8 3.4 3.4"/></svg>
+export const SettingsIcon = ({ size }: IconProps): JSX.Element => <svg {...base(size)}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+export const LibraryIcon = ({ size }: IconProps): JSX.Element => <svg {...base(size)}><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+export const GripIcon = ({ size }: IconProps): JSX.Element => <svg {...base(size)}><circle cx="9" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="17" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="17" r="1" fill="currentColor" stroke="none"/></svg>

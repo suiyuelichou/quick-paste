@@ -1,0 +1,28 @@
+name: Bug / 兼容性问题
+description: 报告输入、文本管理或数据问题
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: 使用环境
+      description: Windows、Quick Paste、目标应用和输入法版本；目标应用是否以管理员权限运行。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 使用不含真实客户信息的最小示例。
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 预期结果与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 错误提示或截图
+      description: 请先移除个人信息，不要上传整个文本库或备份。

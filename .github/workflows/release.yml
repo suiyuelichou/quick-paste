@@ -1,0 +1,54 @@
+name: Draft Windows release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Check tag matches package version
+        shell: pwsh
+        run: |
+          $packageVersion = (Get-Content package.json | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_NAME -ne "v$packageVersion") { throw 'Tag must match package.json version' }
+      - run: npm ci
+      - run: npm test
+      - run: npm run package -- --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Create checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem dist/Quick-Paste-*.exe | ForEach-Object {
+            $digest = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$digest  $($_.Name)"
+          } | Set-Content -Encoding utf8 dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            dist/Quick-Paste-*.exe
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+      - name: Create or update draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = @(Get-ChildItem dist/Quick-Paste-*.exe | ForEach-Object { $_.FullName }) + @('dist/SHA256SUMS.txt')
+          $existing = gh release view $env:GITHUB_REF_NAME --json isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if (-not ($existing | ConvertFrom-Json).isDraft) { throw 'Refusing to overwrite a published release' }
+            gh release upload $env:GITHUB_REF_NAME @assets --clobber
+          } else {
+            gh release create $env:GITHUB_REF_NAME @assets --draft --verify-tag --title "Quick Paste $env:GITHUB_REF_NAME" --notes-file CHANGELOG.md
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }

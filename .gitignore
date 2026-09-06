@@ -1,0 +1,10 @@
+node_modules/
+.npm-cache/
+out/
+dist/
+coverage/
+resources/native/*.exe
+resources/native/*.pdb
+*.log
+*.tsbuildinfo
+.smoke/
