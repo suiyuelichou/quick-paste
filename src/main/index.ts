@@ -204,14 +204,7 @@ function setupIpc(): void {
       await store.markUsed(id).catch(() => notify('使用记录保存失败', '文本已输入成功，无需重复输入。请检查磁盘空间和数据目录权限。'))
       broadcast(store.snapshot())
     } else {
-      const messages: Record<string, string> = {
-        target_missing: '原输入窗口已关闭。',
-        elevated_target: '目标应用以管理员身份运行，当前权限无法向其中输入。',
-        focus_failed: '无法重新聚焦原输入窗口。',
-        input_failed: 'Windows 拒绝了本次文本输入。',
-        helper_failed: '原生输入助手运行失败。'
-      }
-      notify('粘贴失败', messages[result.code ?? 'helper_failed'] ?? '无法完成文本输入。')
+      notify('输入未完成', result.message ?? '输入结果无法确认，请先检查目标窗口，避免重复输入。')
     }
     return result
   })

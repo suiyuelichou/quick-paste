@@ -120,9 +120,9 @@ namespace QuickPasteInputHelper
                 else if (character == '\t') AddVirtualKey(batch, VK_TAB);
                 else AddUnicode(batch, character);
 
-                if (batch.Count >= 400 && !Flush(batch)) return Fail("input_failed");
+                if (batch.Count >= 400 && !Flush(batch, window)) return Fail("input_failed");
             }
-            if (!Flush(batch)) return Fail("input_failed");
+            if (!Flush(batch, window)) return Fail("input_failed");
             Console.WriteLine("{\"ok\":true}");
             return 0;
         }
@@ -160,9 +160,11 @@ namespace QuickPasteInputHelper
             return input;
         }
 
-        private static bool Flush(List<INPUT> batch)
+        private static bool Flush(List<INPUT> batch, IntPtr window)
         {
             if (batch.Count == 0) return true;
+            // Stop between batches if the user switches away during a long insertion.
+            if (!IsWindow(window) || GetForegroundWindow() != window) return false;
             INPUT[] values = batch.ToArray();
             uint sent = SendInput((uint)values.Length, values, Marshal.SizeOf(typeof(INPUT)));
             batch.Clear();

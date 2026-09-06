@@ -46,11 +46,17 @@ try {
     catch (error) { console.error('Failed script:', source); throw error }
   }
   const click = (label) => js(`(() => { const button = [...document.querySelectorAll('button')].find(item => item.textContent.trim() === ${JSON.stringify(label)}); if (!button) throw new Error('Missing button'); button.click(); })()`)
-  const capture = async (name) => {
-    await delay(200)
-    const { width, height } = manager.getContentBounds()
-    const snapshot = await manager.webContents.capturePage({ x: 0, y: 0, width, height }, { stayHidden: true, stayAwake: true })
-    if (snapshot.isEmpty()) throw new Error(`Empty screenshot: ${name}`)
+  const capture = async (name, window = manager) => {
+    await window.webContents.executeJavaScript('document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))')
+    let snapshot
+    // Allow capture to activate painting of the hidden page without showing or focusing
+    // the native window. A newly loaded/resized surface may need another frame.
+    await until(async () => {
+      const { width, height } = window.getContentBounds()
+      snapshot = await window.webContents.capturePage({ x: 0, y: 0, width, height }, { stayHidden: false, stayAwake: true })
+      return !snapshot.isEmpty()
+    }, `non-empty screenshot: ${name}`)
+    assert.equal(window.isVisible(), false, 'Capture must not show the native window')
     await writeFile(resolve(directory, `${name}.png`), snapshot.toPNG())
   }
   await until(() => js('!!document.querySelector(".onboarding-page")'), 'onboarding')
@@ -65,11 +71,7 @@ try {
   await capture('library')
   const picker = BrowserWindow.getAllWindows().find((window) => window.webContents.getURL().includes('view=picker'))
   await until(() => picker.webContents.executeJavaScript('document.querySelectorAll(".wheel-segment").length === 6'), 'wheel samples')
-  await picker.webContents.capturePage({ x: 0, y: 0, width: 560, height: 560 }, { stayHidden: true })
-  await delay(300)
-  const wheelImage = await picker.webContents.capturePage({ x: 0, y: 0, width: 560, height: 560 }, { stayHidden: true })
-  assert.equal(wheelImage.isEmpty(), false)
-  await writeFile(resolve(directory, 'wheel.png'), wheelImage.toPNG())
+  await capture('wheel', picker)
   await js(`(() => {
     const input = document.querySelector('.content-field textarea')
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, '草稿保护测试')

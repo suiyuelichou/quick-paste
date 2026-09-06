@@ -43,4 +43,6 @@ Snippets, backups and editing drafts are local and unencrypted. Do not use this 
 
 Input uses Windows SendInput. Elevated windows, secure fields, games, remote desktop and custom controls may reject input. Newlines are sent as Enter and tabs as Tab; chat apps may send messages and forms may change fields. Test multiline snippets before using them in a real conversation. No clipboard history, rich text, images, dynamic variables or cloud sync are included.
 
+If the input helper times out, exits unexpectedly, or insertion is interrupted, some text may already have been entered. Check the target before retrying; Quick Paste never automatically resends the text. During long insertions, it checks the target and foreground window before each batch and stops subsequent input if focus has changed.
+
 CI runs on Windows. Version tags create a draft GitHub Release for maintainer review; they do not publish it automatically.

@@ -21,7 +21,7 @@ beforeEach(() => {
     applyImport: vi.fn().mockResolvedValue({ added: 0, skipped: 6 })
   } as unknown as QuickPasteApi
 })
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 const editor = (): HTMLElement => screen.getByPlaceholderText('输入需要快速粘贴的纯文本…')
 
@@ -75,6 +75,26 @@ describe('文本管理数据保护', () => {
       expect(draft.id).toBeUndefined()
       expect(draft.groupId).toBe(data.groups[0].id)
     })
+  })
+
+  it('本地草稿写入失败时保留编辑内容和旧草稿，恢复存储后可继续保留', async () => {
+    const oldDraft = { groupId: data.groups[0].id, content: '原有草稿', favorite: false }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(oldDraft))
+    render(<Manager data={data}/>)
+    const draftStatus = screen.getByRole('status')
+    const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceededError') })
+    fireEvent.change(editor(), { target: { value: '尚未落盘的新草稿' } })
+    expect(draftStatus).toHaveTextContent('草稿保留失败，请立即保存')
+    expect(editor()).toHaveValue('尚未落盘的新草稿')
+    expect(JSON.parse(localStorage.getItem(DRAFT_KEY)!).content).toBe('原有草稿')
+    vi.mocked(window.quickPaste.saveSnippet).mockRejectedValueOnce(new Error('磁盘已满'))
+    fireEvent.keyDown(editor(), { key: 's', ctrlKey: true })
+    expect(await screen.findByText('磁盘已满')).toBeInTheDocument()
+    expect(editor()).toHaveValue('尚未落盘的新草稿')
+    write.mockRestore()
+    fireEvent.change(editor(), { target: { value: '存储恢复后的草稿' } })
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(DRAFT_KEY)!).content).toBe('存储恢复后的草稿'))
+    expect(draftStatus).toHaveTextContent('草稿已保留，尚未保存到文本库')
   })
 })
 

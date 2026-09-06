@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest'
-import { mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DataStore } from './store'
@@ -105,6 +105,61 @@ describe('DataStore', () => {
     const results = await Promise.allSettled([store.createGroup('A'), store.createGroup('C')])
     expect(results.map((item) => item.status)).toEqual(['rejected', 'fulfilled'])
     expect(store.snapshot().groups.map((group) => group.name)).toEqual(['默认分组', 'A', 'B', 'C'])
+  })
+
+  it('备份创建失败时不修改内存或主文件，解除故障后可重试', async () => {
+    const { store, file } = await makeStore()
+    const before = store.snapshot()
+    const originalFile = await readFile(file, 'utf8')
+    // A file occupying the backup-directory path makes mkdir fail on Windows too.
+    await writeFile(`${file}.backups`, 'fictional obstruction')
+    const input = { content: '备份失败测试', groupId: before.groups[0].id, favorite: false }
+    await expect(store.saveSnippet(input)).rejects.toThrow()
+    expect(store.snapshot()).toEqual(before)
+    expect(await readFile(file, 'utf8')).toBe(originalFile)
+    await unlink(`${file}.backups`)
+    await store.saveSnippet(input)
+    expect(store.snapshot().snippets).toHaveLength(1)
+    const [backup] = await store.listBackups()
+    expect(JSON.parse(await readFile(join(`${file}.backups`, backup.id), 'utf8'))).toEqual(before)
+  })
+
+  it('恢复写入失败保留当前库和所选备份，重试成功后仍能撤回恢复', async () => {
+    const { store, file } = await makeStore()
+    const groupId = store.snapshot().groups[0].id
+    await store.saveSnippet({ content: '备份中的文本', groupId, favorite: false })
+    const id = store.snapshot().snippets[0].id
+    await store.saveSnippet({ id, content: '当前文本', groupId, favorite: false })
+    const before = store.snapshot()
+    const [selected] = await store.listBackups()
+    const backupPath = join(`${file}.backups`, selected.id)
+    const backupContents = await readFile(backupPath, 'utf8')
+    await rename(file, `${file}.saved`)
+    await mkdir(file)
+    await expect(store.restoreBackup(selected.id)).rejects.toThrow()
+    expect(store.snapshot()).toEqual(before)
+    expect(JSON.parse(await readFile(`${file}.saved`, 'utf8'))).toEqual(before)
+    expect(await readFile(backupPath, 'utf8')).toBe(backupContents)
+    await rmdir(file)
+    await rename(`${file}.saved`, file)
+    await store.restoreBackup(selected.id)
+    expect(store.snapshot().snippets[0].content).toBe('备份中的文本')
+    const [undo] = await store.listBackups()
+    await store.restoreBackup(undo.id)
+    expect(store.snapshot()).toEqual(before)
+    expect(JSON.parse(await readFile(file, 'utf8'))).toEqual(before)
+  })
+
+  it('所选备份损坏时拒绝恢复且不修改当前库', async () => {
+    const { store, file } = await makeStore()
+    await store.createGroup('产生备份')
+    const before = store.snapshot()
+    const [selected] = await store.listBackups()
+    await writeFile(join(`${file}.backups`, selected.id), '{broken')
+    await expect(store.restoreBackup(selected.id)).rejects.toThrow()
+    expect(store.snapshot()).toEqual(before)
+    expect(JSON.parse(await readFile(file, 'utf8'))).toEqual(before)
+    expect(await store.listBackups()).toEqual([])
   })
 
   it('保留十份备份，使用记录不轮换备份，恢复前再备份且保留设置', async () => {
