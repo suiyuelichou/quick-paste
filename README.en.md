@@ -17,7 +17,7 @@ An open-source Windows 10/11 x64 text snippet wheel. Press `Ctrl+Alt+Space`, sel
 
 ## Get started
 
-When a public release is available, download `Quick-Paste-1.1.0-x64.exe` from [Releases](https://github.com/suiyuelichou/quick-paste/releases). Otherwise build locally. Launch the app and follow the onboarding screen, or skip the samples and create your own snippets. Closing the manager keeps the app in the system tray.
+When a public release is available, download `Quick-Paste-1.1.1-x64.exe` from [Releases](https://github.com/suiyuelichou/quick-paste/releases). Otherwise build locally. Launch the app and follow the onboarding screen, or skip the samples and create your own snippets. Closing the manager keeps the app in the system tray.
 
 ## Build
 

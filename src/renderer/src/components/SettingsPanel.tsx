@@ -56,6 +56,6 @@ export function SettingsPanel({ data, run, setMessage }: { data: AppData; run: A
     </section>
     <section className="settings-card notice-card"><div className="notice-icon">i</div><div><strong>本地数据与兼容性</strong><p>所有文本仅以未加密 JSON 文件保存在本机，不会上传，也不会读取或修改系统剪贴板。本工具不应作为密码管理器使用；管理员权限窗口、安全输入框、游戏及远程桌面可能拒绝自动输入。</p></div></section>
     <DataPanel data={data} run={run} setMessage={setMessage}/>
-    <footer className="about-row"><span>Quick Paste</span><span>版本 1.1.0 · Windows x64</span></footer>
+    <footer className="about-row"><span>Quick Paste</span><span>版本 1.1.1 · Windows x64</span></footer>
   </main>
 }

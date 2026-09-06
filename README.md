@@ -20,7 +20,7 @@ Quick Paste 是一款开源的 Windows 10/11 x64 常用文本工具，使用本�
 
 ## 安装与下载
 
-公开发布后，在 [Releases 页面](https://github.com/suiyuelichou/quick-paste/releases) 下载 `Quick-Paste-1.1.0-x64.exe`。如果当前还没有公开 Release，可以按照下方开发步骤自行打包。
+公开发布后，在 [Releases 页面](https://github.com/suiyuelichou/quick-paste/releases) 下载 `Quick-Paste-1.1.1-x64.exe`。如果当前还没有公开 Release，可以按照下方开发步骤自行打包。
 
 安装后从开始菜单启动 Quick Paste，首次打开会进入“一分钟上手”。关闭管理窗口后仍驻留托盘，从托盘菜单选择“退出”才会结束程序。
 
@@ -73,7 +73,7 @@ npm run test:smoke
 npm run package
 ```
 
-需要 Windows 和 Node.js 22.12+，建议使用 Node.js 22 LTS。`npm run native:build` 使用 Windows .NET Framework C# 编译器构建 `native/InputHelper.cs`。安装包输出到 `dist/Quick-Paste-1.1.0-x64.exe`。
+需要 Windows 和 Node.js 22.12+，建议使用 Node.js 22 LTS。`npm run native:build` 使用 Windows .NET Framework C# 编译器构建 `native/InputHelper.cs`。安装包输出到 `dist/Quick-Paste-1.1.1-x64.exe`。
 
 `test:smoke` 需在构建后运行，会使用隔离目录验证真实 Electron 窗口、preload、IPC、导入导出和草稿保护，生成截图到 `.smoke/`。不会更改日常使用的数据，也不验证其他应用的原生输入兼容性。
 

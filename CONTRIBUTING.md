@@ -36,4 +36,4 @@ npm run test:smoke
 
 ## 发布
 
-维护者同步更新 `package.json`、`package-lock.json`、应用版本展示和 `CHANGELOG.md` 后，推送与包版本一致的标签，例如 `v1.1.0`。GitHub Actions 会测试、打包并创建 **草稿 Release**，附安装包和 SHA-256 校验文件。维护者检查产物后手动公开发布。普通提交和 PR 仅运行 CI，不发布版本。
+维护者同步更新 `package.json`、`package-lock.json`、应用版本展示和 `CHANGELOG.md` 后，推送与包版本一致的标签，例如 `v1.1.1`。GitHub Actions 会测试、打包并创建 **草稿 Release**，附安装包和 SHA-256 校验文件。维护者检查产物后手动公开发布。普通提交和 PR 仅运行 CI，不发布版本。

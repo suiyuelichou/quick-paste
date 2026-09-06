@@ -1,6 +1,6 @@
 {
   "name": "quick-paste",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "独立于系统剪贴板的 Windows 常用文本快速输入工具",
   "main": "out/main/index.js",
   "author": "Quick Paste",
