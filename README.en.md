@@ -8,7 +8,7 @@ An open-source Windows 10/11 x64 text snippet wheel. Press `Ctrl+Alt+Space`, sel
 
 ## Features
 
-- Stable wheel positions based on manually ordered groups and snippets.
+- Stable wheel positions based on manually ordered groups and snippets, with configurable tap-to-open or hold-to-show activation.
 - Search by content or group; favorites rank higher in search.
 - Persistent local editing draft, discard confirmation, and Ctrl+S.
 - JSON import preview with duplicate handling; export an entire library or one group.
@@ -18,7 +18,7 @@ An open-source Windows 10/11 x64 text snippet wheel. Press `Ctrl+Alt+Space`, sel
 
 ## Get started
 
-When a public release is available, download `Quick-Paste-1.2.0-x64.exe` from [Releases](https://github.com/suiyuelichou/quick-paste/releases). Otherwise build locally. Launch the app and follow the onboarding screen, or skip the samples and create your own snippets. Closing the manager keeps the app in the system tray.
+When a public release is available, download `Quick-Paste-1.3.0-x64.exe` from [Releases](https://github.com/suiyuelichou/quick-paste/releases). Otherwise build locally. Launch the app and follow the onboarding screen, or skip the samples and create your own snippets. Closing the manager keeps the app in the system tray. Settings can keep the default tap-to-open behavior or show the wheel only while the shortcut is held; hold-to-show is intended for mouse selection, while tap-to-open also supports search and keyboard navigation.
 
 ## Build
 
@@ -40,7 +40,7 @@ The installer is generated in `dist/`. Smoke tests use an isolated data director
 
 ## Data and limitations
 
-Snippets, backups and editing drafts are local and unencrypted. Do not use this application as a password manager. Exports contain saved snippets and groups, excluding preferences, drafts and usage history. Import merges matching group names; exact content in the same group is considered a duplicate.
+Snippets, backups and editing drafts are local and unencrypted. Do not use this application as a password manager. Exports contain saved snippets and groups, excluding preferences, drafts and usage history. Import merges matching group names; exact content in the same group is considered a duplicate. Hold-to-show checks only whether the configured shortcut keys remain pressed while the wheel is active; it does not record other keys.
 
 Input uses Windows SendInput. Elevated windows, secure fields, games, remote desktop and custom controls may reject input. Newlines are sent as Enter and tabs as Tab; chat apps may send messages and forms may change fields. Test multiline snippets before using them in a real conversation. No clipboard history, rich text, images, dynamic variables or cloud sync are included.
 

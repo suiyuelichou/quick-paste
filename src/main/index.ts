@@ -5,9 +5,11 @@ import { DataStore } from './store'
 import { setupLibraryIpc } from './library-ipc'
 import { captureTarget, typeIntoTarget } from './input-helper'
 import { isValidHotkey } from '../shared/search'
+import { hotkeyVirtualKeyGroups, isHotkeyMode } from '../shared/hotkey'
 import { clampPickerPosition, PICKER_SIZE } from '../shared/wheel'
-import type { AppData, PasteResult, SettingsUpdateResult, SnippetInput, UpdateState } from '../shared/types'
+import type { AppData, PasteResult, Settings, SettingsUpdateResult, SnippetInput, UpdateState } from '../shared/types'
 import { UpdateService, type UpdaterAdapter } from './updater'
+import { monitorHotkeyRelease, type HotkeyReleaseMonitor, type HotkeyReleaseResult } from './hotkey-release'
 
 let pickerWindow: BrowserWindow | null = null
 let managerWindow: BrowserWindow | null = null
@@ -15,6 +17,8 @@ let tray: Tray | null = null
 let store: DataStore
 let targetHandle: string | null = null
 let currentHotkey = ''
+let hotkeyReleaseMonitor: HotkeyReleaseMonitor | null = null
+let holdActivation = 0
 let quitting = false
 let flushed = false
 let updateService: UpdateService
@@ -69,7 +73,12 @@ function createPicker(): BrowserWindow {
   return pickerWindow
 }
 
-function dismissPicker(): void {
+function dismissPicker(cancelReleaseMonitor = true): void {
+  if (cancelReleaseMonitor) {
+    holdActivation++
+    hotkeyReleaseMonitor?.cancel()
+    hotkeyReleaseMonitor = null
+  }
   pickerWindow?.hide()
   targetHandle = null
 }
@@ -109,15 +118,16 @@ function createManager(section: 'snippets' | 'settings' = 'snippets'): BrowserWi
   return managerWindow
 }
 
-async function showPicker(): Promise<void> {
+async function showPicker(toggleIfVisible = true, activation?: number): Promise<boolean> {
   if (pickerWindow?.isVisible()) {
-    dismissPicker()
-    return
+    if (toggleIfVisible) dismissPicker()
+    return !toggleIfVisible
   }
   const captured = await captureTarget()
+  if (activation !== undefined && activation !== holdActivation) return false
   if (!captured.ok || !captured.handle) {
     notify('无法打开选择器', '没有找到可输入的目标窗口。')
-    return
+    return false
   }
   targetHandle = captured.handle
   const picker = createPicker()
@@ -128,6 +138,40 @@ async function showPicker(): Promise<void> {
   picker.show()
   picker.focus()
   picker.webContents.send('picker:shown')
+  return true
+}
+
+async function showHeldPicker(hotkey: string): Promise<void> {
+  if (hotkeyReleaseMonitor) return
+  const monitor = monitorHotkeyRelease(hotkey)
+  if (!monitor) {
+    notify('无法使用按住显示', '当前快捷键无法检测松开状态，请在设置中更换快捷键或唤起方式。')
+    return
+  }
+  const activation = ++holdActivation
+  hotkeyReleaseMonitor = monitor
+  let releaseResult: HotkeyReleaseResult | undefined
+  void monitor.done.then((result) => {
+    releaseResult = result
+    if (activation !== holdActivation) return
+    hotkeyReleaseMonitor = null
+    if (result === 'failed') notify('按键状态检测失败', '选择器已关闭，请重试或切换为“按一下打开”。')
+    dismissPicker(false)
+  })
+  const shown = await showPicker(false, activation)
+  if (!shown && activation === holdActivation) {
+    holdActivation++
+    hotkeyReleaseMonitor = null
+    monitor.cancel()
+    return
+  }
+  if (releaseResult !== undefined && activation === holdActivation) dismissPicker(false)
+}
+
+function activateHotkey(): void {
+  const settings = store.snapshot().settings
+  if (settings.hotkeyMode === 'hold') void showHeldPicker(settings.hotkey)
+  else void showPicker()
 }
 
 function notify(title: string, body: string): void {
@@ -149,19 +193,28 @@ function broadcastUpdateState(state: UpdateState): void {
 function registerHotkey(hotkey: string): boolean {
   if (currentHotkey === hotkey && globalShortcut.isRegistered(hotkey)) return true
   if (currentHotkey) globalShortcut.unregister(currentHotkey)
-  const registered = globalShortcut.register(hotkey, () => { void showPicker() })
+  const registered = globalShortcut.register(hotkey, activateHotkey)
   if (registered) currentHotkey = hotkey
   return registered
 }
 
-async function updateSettings(patch: { hotkey?: string; openAtLogin?: boolean }): Promise<SettingsUpdateResult> {
+type SettingsPatch = Partial<Pick<Settings, 'hotkey' | 'hotkeyMode' | 'openAtLogin'>>
+
+async function updateSettings(patch: SettingsPatch): Promise<SettingsUpdateResult> {
   const oldSettings = store.snapshot().settings
+  if (patch.hotkeyMode !== undefined && !isHotkeyMode(patch.hotkeyMode)) return { ok: false, settings: oldSettings, message: '请选择有效的快捷键唤起方式' }
   if (patch.hotkey !== undefined) {
     if (!isValidHotkey(patch.hotkey)) return { ok: false, settings: oldSettings, message: '快捷键必须包含修饰键和普通按键' }
     if (!registerHotkey(patch.hotkey)) {
       registerHotkey(oldSettings.hotkey)
       return { ok: false, settings: oldSettings, message: '快捷键已被其他应用占用，请换一个组合' }
     }
+  }
+  const nextHotkey = patch.hotkey ?? oldSettings.hotkey
+  const nextMode = patch.hotkeyMode ?? oldSettings.hotkeyMode
+  if (nextMode === 'hold' && !hotkeyVirtualKeyGroups(nextHotkey)) {
+    if (patch.hotkey !== undefined) registerHotkey(oldSettings.hotkey)
+    return { ok: false, settings: oldSettings, message: '该组合无法检测松开状态，请使用字母、数字、方向键、功能键或常见编辑键' }
   }
   let data: AppData
   try { data = await store.updateSettings(patch) }
@@ -219,8 +272,7 @@ function setupIpc(): void {
     const item = store.snapshot().snippets.find((snippet) => snippet.id === id)
     if (!item || !targetHandle) return { ok: false, code: 'target_missing', message: '原输入窗口已关闭' }
     const handle = targetHandle
-    pickerWindow?.hide()
-    targetHandle = null
+    dismissPicker()
     const result = await typeIntoTarget(handle, item.content)
     if (result.ok) {
       await store.markUsed(id).catch(() => notify('使用记录保存失败', '文本已输入成功，无需重复输入。请检查磁盘空间和数据目录权限。'))
@@ -234,7 +286,12 @@ function setupIpc(): void {
   ipcMain.handle('group:rename', async (_event, id: string, name: string) => { const data = await store.renameGroup(id, name); broadcast(data); return data })
   ipcMain.handle('group:delete', async (_event, id: string) => { const data = await store.deleteGroup(id); broadcast(data); return data })
   ipcMain.handle('group:reorder', async (_event, ids: string[]) => { const data = await store.reorderGroups(ids); broadcast(data); return data })
-  ipcMain.handle('settings:update', (_event, patch: { hotkey?: string; openAtLogin?: boolean }) => updateSettings(patch))
+  ipcMain.handle('settings:update', (_event, patch: unknown) => {
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('无效的设置请求')
+    const keys = Object.keys(patch)
+    if (!keys.length || keys.some((key) => !['hotkey', 'hotkeyMode', 'openAtLogin'].includes(key))) throw new Error('无效的设置请求')
+    return updateSettings(patch as SettingsPatch)
+  })
   const requireNoArguments = (args: unknown[]): void => {
     if (args.length > 0) throw new Error('无效的更新请求')
   }
@@ -282,6 +339,8 @@ if (gotLock) {
   app.on('activate', () => createManager('snippets'))
   app.on('before-quit', (event) => {
     quitting = true
+    hotkeyReleaseMonitor?.cancel()
+    hotkeyReleaseMonitor = null
     if (store && !flushed) {
       event.preventDefault()
       void store.flush().catch(() => undefined).finally(() => { flushed = true; app.quit() })

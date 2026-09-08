@@ -5,7 +5,7 @@ import type { PasteResult } from '../shared/types'
 
 interface CaptureResult { ok: boolean; handle?: string; left?: number; top?: number; right?: number; bottom?: number; code?: string }
 
-const helperPath = (): string => app.isPackaged
+export const nativeHelperPath = (): string => app.isPackaged
   ? join(process.resourcesPath, 'native', 'QuickPaste.InputHelper.exe')
   : join(app.getAppPath(), 'resources', 'native', 'QuickPaste.InputHelper.exe')
 
@@ -47,7 +47,7 @@ export function captureTarget(): Promise<CaptureResult> {
   return new Promise((resolve) => {
     const fail = (): void => resolve({ ok: false, code: 'helper_failed' })
     try {
-      execFile(helperPath(), ['capture'], { windowsHide: true, encoding: 'utf8', timeout: CAPTURE_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES }, (error, stdout) => {
+      execFile(nativeHelperPath(), ['capture'], { windowsHide: true, encoding: 'utf8', timeout: CAPTURE_TIMEOUT_MS, maxBuffer: MAX_OUTPUT_BYTES }, (error, stdout) => {
         try {
           if (error) throw error
           const { ok, handle, left, top, right, bottom } = parseLastJson(stdout)
@@ -65,7 +65,7 @@ export function typeIntoTarget(handle: string, content: string): Promise<PasteRe
   if (typeof content !== 'string' || !content.length || content.length > 100000) return Promise.resolve({ ok: false, code: 'helper_failed', message: '输入内容无效，未发送文本。' })
   return new Promise((resolve) => {
     let child: ChildProcessWithoutNullStreams
-    try { child = spawn(helperPath(), ['type', handle], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] }) }
+    try { child = spawn(nativeHelperPath(), ['type', handle], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] }) }
     catch { resolve({ ok: false, code: 'helper_failed', message: '无法启动原生输入助手，未发送文本。' }); return }
     let settled = false
     let outputBytes = 0

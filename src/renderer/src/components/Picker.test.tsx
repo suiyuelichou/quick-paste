@@ -13,7 +13,7 @@ const data: AppData = {
     { ...snippet('s1', '上海市测试路 1 号', 0, true), useCount: 3 },
     snippet('s2', '你好，很高兴认识你', 1)
   ],
-  settings: { hotkey: 'Ctrl+Alt+Space', openAtLogin: false, dataVersion: 2 }
+  settings: { hotkey: 'Ctrl+Alt+Space', hotkeyMode: 'toggle', openAtLogin: false, dataVersion: 4 }
 }
 
 const manyData: AppData = {

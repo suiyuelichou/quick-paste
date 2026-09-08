@@ -24,6 +24,7 @@ describe('DataStore', () => {
     const { store, file } = await makeStore()
     expect(store.snapshot().groups).toHaveLength(1)
     expect(JSON.parse(await readFile(file, 'utf8')).settings.dataVersion).toBe(DATA_VERSION)
+    expect(store.snapshot().settings.hotkeyMode).toBe('toggle')
   })
 
   it('新增、更新、排序并删除文本', async () => {
@@ -76,6 +77,7 @@ describe('DataStore', () => {
     expect(store.snapshot().snippets[0].content).toBe('保留的正文')
     expect(store.snapshot().snippets[0]).not.toHaveProperty('title')
     expect(store.snapshot().settings.dataVersion).toBe(DATA_VERSION)
+    expect(store.snapshot().settings.hotkeyMode).toBe('toggle')
     await store.renameGroup('g1', '新分组')
     expect(JSON.parse(await readFile(file, 'utf8')).settings.dataVersion).toBe(DATA_VERSION)
   })
@@ -168,7 +170,7 @@ describe('DataStore', () => {
     await store.saveSnippet({ content: '原文', groupId, favorite: false })
     const id = store.snapshot().snippets[0].id
     for (let index = 0; index < 12; index++) await store.saveSnippet({ id, content: `版本${index}`, groupId, favorite: false })
-    await store.updateSettings({ hotkey: 'Ctrl+Shift+J' })
+    await store.updateSettings({ hotkey: 'Ctrl+Shift+J', hotkeyMode: 'hold' })
     const backups = await store.listBackups()
     expect(backups).toHaveLength(10)
     await store.markUsed(id)
@@ -176,6 +178,7 @@ describe('DataStore', () => {
     await store.restoreBackup(backups[1].id)
     expect(store.snapshot().snippets[0].content).toBe('版本10')
     expect(store.snapshot().settings.hotkey).toBe('Ctrl+Shift+J')
+    expect(store.snapshot().settings.hotkeyMode).toBe('hold')
     const latest = (await store.listBackups())[0]
     await store.restoreBackup(latest.id)
     expect(store.snapshot().snippets[0].content).toBe('版本11')

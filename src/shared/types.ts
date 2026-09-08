@@ -1,5 +1,8 @@
 export const DEFAULT_HOTKEY = 'Ctrl+Alt+Space'
-export const DATA_VERSION = 3
+export const DEFAULT_HOTKEY_MODE: HotkeyMode = 'toggle'
+export const DATA_VERSION = 4
+
+export type HotkeyMode = 'toggle' | 'hold'
 
 export interface Snippet {
   id: string
@@ -21,6 +24,7 @@ export interface Group {
 
 export interface Settings {
   hotkey: string
+  hotkeyMode: HotkeyMode
   openAtLogin: boolean
   dataVersion: number
   onboardingCompleted?: boolean
@@ -97,7 +101,7 @@ export interface QuickPasteApi {
   renameGroup(id: string, name: string): Promise<AppData>
   deleteGroup(id: string): Promise<AppData>
   reorderGroups(orderedIds: string[]): Promise<AppData>
-  updateSettings(patch: Partial<Pick<Settings, 'hotkey' | 'openAtLogin'>>): Promise<SettingsUpdateResult>
+  updateSettings(patch: Partial<Pick<Settings, 'hotkey' | 'hotkeyMode' | 'openAtLogin'>>): Promise<SettingsUpdateResult>
   getUpdateState(): Promise<UpdateState>
   checkForUpdates(): Promise<UpdateState>
   downloadUpdate(): Promise<UpdateState>

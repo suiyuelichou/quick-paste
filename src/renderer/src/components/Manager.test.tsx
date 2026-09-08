@@ -8,7 +8,7 @@ import { DRAFT_KEY } from '../draft'
 const data: AppData = {
   groups: sampleLibrary.groups,
   snippets: sampleLibrary.snippets,
-  settings: { hotkey: 'Ctrl+Alt+Space', openAtLogin: false, dataVersion: 3, onboardingCompleted: true }
+  settings: { hotkey: 'Ctrl+Alt+Space', hotkeyMode: 'toggle', openAtLogin: false, dataVersion: 4, onboardingCompleted: true }
 }
 
 beforeEach(() => {
@@ -18,6 +18,7 @@ beforeEach(() => {
     onUpdateState: vi.fn(() => () => undefined),
     getUpdateState: vi.fn().mockResolvedValue({ phase: 'unsupported', currentVersion: '1.1.1', message: '开发模式不检查更新。' }),
     checkForUpdates: vi.fn(), downloadUpdate: vi.fn(), installUpdate: vi.fn(),
+    updateSettings: vi.fn().mockImplementation(async (patch) => ({ ok: true, settings: { ...data.settings, ...patch } })),
     saveSnippet: vi.fn(), exportLibrary: vi.fn().mockResolvedValue(true),
     completeOnboarding: vi.fn().mockResolvedValue(data),
     previewImport: vi.fn().mockResolvedValue({ token: 'preview', name: 'templates.json', groups: [{ name: '上手示例', count: 6 }], total: 6, duplicates: 6 }),
@@ -145,5 +146,26 @@ describe('应用更新', () => {
     fireEvent.click(screen.getByRole('button', { name: '下载更新' }))
     await waitFor(() => expect(window.quickPaste.downloadUpdate).toHaveBeenCalledOnce())
     expect(screen.getByRole('progressbar', { name: '更新下载进度' })).toBeInTheDocument()
+  })
+})
+
+describe('快捷键唤起方式', () => {
+  it('可以切换为按住显示并立即保存', async () => {
+    render(<Manager data={data}/>)
+    fireEvent.click(screen.getByRole('button', { name: '设置' }))
+    expect(screen.getByRole('radio', { name: /按一下打开/ })).toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: /按住显示/ }))
+    await waitFor(() => expect(window.quickPaste.updateSettings).toHaveBeenCalledWith({ hotkeyMode: 'hold' }))
+    expect(screen.getByRole('radio', { name: /按住显示/ })).toBeChecked()
+    expect(screen.getByText('已切换为按住显示')).toBeInTheDocument()
+  })
+
+  it('保存失败时恢复原唤起方式', async () => {
+    vi.mocked(window.quickPaste.updateSettings).mockResolvedValueOnce({ ok: false, settings: data.settings, message: '虚构的保存失败' })
+    render(<Manager data={data}/>)
+    fireEvent.click(screen.getByRole('button', { name: '设置' }))
+    fireEvent.click(screen.getByRole('radio', { name: /按住显示/ }))
+    expect(await screen.findByText('虚构的保存失败')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /按一下打开/ })).toBeChecked()
   })
 })

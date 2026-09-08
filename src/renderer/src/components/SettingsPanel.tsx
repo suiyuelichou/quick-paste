@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AppData, UpdateState } from '../../../shared/types'
+import type { AppData, HotkeyMode, UpdateState } from '../../../shared/types'
 import type { AsyncRunner } from './Manager'
 import { DataPanel } from './DataPanel'
 
@@ -11,7 +11,18 @@ function accelerator(event: React.KeyboardEvent): string | null {
   if (event.metaKey) modifiers.push('Super')
   const modifierKeys = new Set(['Control', 'Alt', 'Shift', 'Meta'])
   if (modifierKeys.has(event.key)) return null
-  let key = event.code === 'Space' ? 'Space' : event.key.length === 1 ? event.key.toUpperCase() : event.key
+  const physicalKeys: Record<string, string> = {
+    Space: 'Space', Semicolon: ';', Equal: '=', Comma: ',', Minus: '-', Period: '.', Slash: '/',
+    Backquote: '`', BracketLeft: '[', Backslash: '\\', BracketRight: ']', Quote: "'",
+    NumpadAdd: 'numadd', NumpadSubtract: 'numsub', NumpadMultiply: 'nummult', NumpadDivide: 'numdiv', NumpadDecimal: 'numdec'
+  }
+  let key = /^Key[A-Z]$/.test(event.code)
+    ? event.code.slice(3)
+    : /^Digit\d$/.test(event.code)
+      ? event.code.slice(5)
+      : /^Numpad\d$/.test(event.code)
+        ? `num${event.code.slice(6)}`
+        : physicalKeys[event.code] ?? (event.key.length === 1 ? event.key.toUpperCase() : event.key)
   if (/^Arrow/.test(key)) key = key.replace('Arrow', '')
   return modifiers.length && key ? [...modifiers, key].join('+') : null
 }
@@ -19,9 +30,11 @@ function accelerator(event: React.KeyboardEvent): string | null {
 export function SettingsPanel({ data, run, setMessage }: { data: AppData; run: AsyncRunner; setMessage: (message: string) => void }): JSX.Element {
   const settings = data.settings
   const [hotkey, setHotkey] = useState(settings.hotkey)
+  const [hotkeyMode, setHotkeyMode] = useState<HotkeyMode>(settings.hotkeyMode)
   const [recording, setRecording] = useState(false)
   const [updateState, setUpdateState] = useState<UpdateState | null>(null)
   useEffect(() => setHotkey(settings.hotkey), [settings.hotkey])
+  useEffect(() => setHotkeyMode(settings.hotkeyMode), [settings.hotkeyMode])
   useEffect(() => {
     let active = true
     void window.quickPaste.getUpdateState().then((state) => { if (active) setUpdateState(state) }).catch(() => {
@@ -42,6 +55,17 @@ export function SettingsPanel({ data, run, setMessage }: { data: AppData; run: A
     const result = await run(() => window.quickPaste.updateSettings({ openAtLogin: value }))
     if (!result) return
     setMessage(result.ok ? (value ? '已开启开机启动' : '已关闭开机启动') : result.message ?? '设置失败')
+  }
+  const saveHotkeyMode = async (value: HotkeyMode): Promise<void> => {
+    const previous = hotkeyMode
+    setHotkeyMode(value)
+    const result = await run(() => window.quickPaste.updateSettings({ hotkeyMode: value }))
+    if (!result?.ok) {
+      setHotkeyMode(result?.settings.hotkeyMode ?? previous)
+      setMessage(result?.message ?? '唤起方式设置失败')
+      return
+    }
+    setMessage(value === 'hold' ? '已切换为按住显示' : '已切换为按一下打开')
   }
 
   const runUpdateAction = async (): Promise<void> => {
@@ -80,6 +104,17 @@ export function SettingsPanel({ data, run, setMessage }: { data: AppData; run: A
         <button className="primary" disabled={hotkey === settings.hotkey} onClick={() => void saveHotkey()}>应用</button>
       </div>
       <small className="setting-note">快捷键至少包含一个修饰键；不会占用单独的 Tab 键。若组合已被其他程序占用，当前设置不会改变。</small>
+      <fieldset className="hotkey-mode">
+        <legend>唤起方式</legend>
+        <label className={hotkeyMode === 'toggle' ? 'selected' : ''}>
+          <input type="radio" name="hotkey-mode" checked={hotkeyMode === 'toggle'} onChange={() => void saveHotkeyMode('toggle')}/>
+          <span><strong>按一下打开</strong><small>再次按快捷键、按 Esc 或失去焦点时关闭，适合搜索和键盘导航。</small></span>
+        </label>
+        <label className={hotkeyMode === 'hold' ? 'selected' : ''}>
+          <input type="radio" name="hotkey-mode" checked={hotkeyMode === 'hold'} onChange={() => void saveHotkeyMode('hold')}/>
+          <span><strong>按住显示</strong><small>按住组合键显示轮盘，松开任一按键立即关闭，适合鼠标选择。</small></span>
+        </label>
+      </fieldset>
     </section>
     <section className="settings-card setting-line">
       <div className="setting-copy"><strong>开机时自动启动</strong><p>登录 Windows 后在系统托盘静默运行，选择器随时可用。</p></div>

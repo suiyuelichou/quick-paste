@@ -50,6 +50,7 @@ namespace QuickPasteInputHelper
         }
 
         [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int virtualKey);
         [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
         [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr hWnd);
         [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
@@ -69,6 +70,7 @@ namespace QuickPasteInputHelper
             {
                 if (args.Length == 1 && args[0] == "capture") return Capture();
                 if (args.Length == 2 && args[0] == "type") return TypeText(args[1]);
+                if (args.Length == 2 && args[0] == "wait-release") return WaitForRelease(args[1]);
                 return Fail("invalid_arguments");
             }
             catch (Exception ex)
@@ -84,6 +86,52 @@ namespace QuickPasteInputHelper
             if (window == IntPtr.Zero || !GetWindowRect(window, out rect)) return Fail("target_missing");
             Console.WriteLine("{\"ok\":true,\"handle\":\"" + window.ToInt64() + "\",\"left\":" + rect.Left + ",\"top\":" + rect.Top + ",\"right\":" + rect.Right + ",\"bottom\":" + rect.Bottom + "}");
             return 0;
+        }
+
+        private static int WaitForRelease(string keySpec)
+        {
+            string[] rawGroups = keySpec.Split(';');
+            if (rawGroups.Length < 2 || rawGroups.Length > 8) return Fail("invalid_arguments");
+            List<int[]> groups = new List<int[]>();
+            foreach (string rawGroup in rawGroups)
+            {
+                string[] rawKeys = rawGroup.Split(',');
+                if (rawKeys.Length < 1 || rawKeys.Length > 2) return Fail("invalid_arguments");
+                List<int> keys = new List<int>();
+                foreach (string rawKey in rawKeys)
+                {
+                    int key;
+                    if (!int.TryParse(rawKey, out key) || key < 1 || key > 255 || keys.Contains(key)) return Fail("invalid_arguments");
+                    keys.Add(key);
+                }
+                groups.Add(keys.ToArray());
+            }
+
+            Stopwatch timeout = Stopwatch.StartNew();
+            while (timeout.ElapsedMilliseconds < 60000)
+            {
+                if (!AreAllKeyGroupsDown(groups))
+                {
+                    Console.WriteLine("{\"ok\":true,\"released\":true}");
+                    return 0;
+                }
+                Thread.Sleep(8);
+            }
+            return Fail("release_timeout");
+        }
+
+        private static bool AreAllKeyGroupsDown(List<int[]> groups)
+        {
+            foreach (int[] group in groups)
+            {
+                bool down = false;
+                foreach (int key in group)
+                {
+                    if ((GetAsyncKeyState(key) & 0x8000) != 0) { down = true; break; }
+                }
+                if (!down) return false;
+            }
+            return true;
         }
 
         private static int TypeText(string handleValue)

@@ -27,7 +27,7 @@ export function Onboarding({ data, run, onDone }: { data: AppData; run: AsyncRun
     </section>
     <section className="settings-card">
       <div className="step-heading"><span>2</span><h2>在这里试一次</h2></div>
-      <p className="muted">先点击下面的输入框，再按 <kbd>{data.settings.hotkey}</kbd>，点击轮盘中的任意文本。也可以直接输入关键词搜索。</p>
+      <p className="muted">先点击下面的输入框，{data.settings.hotkeyMode === 'hold' ? <>按住 <kbd>{data.settings.hotkey}</kbd> 并点击轮盘中的文本，松开即可关闭。</> : <>按 <kbd>{data.settings.hotkey}</kbd>，点击轮盘中的任意文本。也可以直接输入关键词搜索。</>}</p>
       <textarea ref={input} className="practice-input" aria-label="练习输入框" placeholder="点击这里，再按快捷键唤起轮盘…" value={practice} onChange={(event) => setPractice(event.target.value)}/>
       {practiced && <p className="success-note" role="status">输入成功！现在可以到其他普通应用的输入框中使用。</p>}
     </section>

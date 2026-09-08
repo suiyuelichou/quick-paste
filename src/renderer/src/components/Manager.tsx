@@ -32,7 +32,7 @@ export function Manager({ data }: { data: AppData }): JSX.Element {
         <button className={section === 'settings' ? 'active' : ''} onClick={() => setSection('settings')}><SettingsIcon/>设置</button>
         <button className={section === 'onboarding' ? 'active' : ''} onClick={() => setSection('onboarding')}><span className="guide-icon">?</span>快速上手</button>
       </nav>
-      <div className="sidebar-tip"><span>全局快捷键</span><kbd>{data.settings.hotkey.replaceAll('+', ' + ')}</kbd><small>在任意普通窗口唤起</small></div>
+      <div className="sidebar-tip"><span>全局快捷键</span><kbd>{data.settings.hotkey.replaceAll('+', ' + ')}</kbd><small>{data.settings.hotkeyMode === 'hold' ? '按住时显示轮盘' : '在任意普通窗口唤起'}</small></div>
     </aside>
     <div className="manager-content" hidden={section !== 'snippets'}><SnippetManager data={data} run={run}/></div>
     {section === 'settings' && <SettingsPanel data={data} run={run} setMessage={setMessage}/>}

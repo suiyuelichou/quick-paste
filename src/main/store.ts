@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { DATA_VERSION, DEFAULT_HOTKEY, type AppData, type BackupInfo, type LibraryData, type Settings, type SnippetInput } from '../shared/types'
+import { DATA_VERSION, DEFAULT_HOTKEY, DEFAULT_HOTKEY_MODE, type AppData, type BackupInfo, type LibraryData, type Settings, type SnippetInput } from '../shared/types'
 import { parseLibrary } from '../shared/library'
 import { isValidHotkey } from '../shared/search'
+import { hotkeyVirtualKeyGroups, isHotkeyMode } from '../shared/hotkey'
 import { sampleLibrary } from '../shared/samples'
 
 const clone = <T>(value: T): T => structuredClone(value)
@@ -14,7 +15,7 @@ const MAX_BACKUPS = 10
 export function createInitialData(): AppData {
   return {
     snippets: [], groups: [{ id: randomUUID(), name: '默认分组', order: 0 }],
-    settings: { hotkey: DEFAULT_HOTKEY, openAtLogin: false, dataVersion: DATA_VERSION, onboardingCompleted: false }
+    settings: { hotkey: DEFAULT_HOTKEY, hotkeyMode: DEFAULT_HOTKEY_MODE, openAtLogin: false, dataVersion: DATA_VERSION, onboardingCompleted: false }
   }
 }
 
@@ -150,11 +151,15 @@ export class DataStore {
     })
   }
 
-  updateSettings(patch: Partial<Pick<Settings, 'hotkey' | 'openAtLogin'>>): Promise<AppData> {
+  updateSettings(patch: Partial<Pick<Settings, 'hotkey' | 'hotkeyMode' | 'openAtLogin'>>): Promise<AppData> {
     return this.transact((data) => {
       if (patch.hotkey !== undefined) {
         if (typeof patch.hotkey !== 'string' || !isValidHotkey(patch.hotkey)) throw new Error('快捷键不合法')
         data.settings.hotkey = patch.hotkey
+      }
+      if (patch.hotkeyMode !== undefined) {
+        if (!isHotkeyMode(patch.hotkeyMode)) throw new Error('快捷键交互模式不合法')
+        data.settings.hotkeyMode = patch.hotkeyMode
       }
       if (patch.openAtLogin !== undefined) {
         if (typeof patch.openAtLogin !== 'boolean') throw new Error('开机启动设置不合法')
@@ -250,8 +255,10 @@ export class DataStore {
     const library = parseLibrary(raw)
     const settings = (raw as Partial<AppData>).settings
     if (settings && settings.dataVersion > DATA_VERSION) throw new Error('数据版本过新')
+    const hotkey = typeof settings?.hotkey === 'string' && isValidHotkey(settings.hotkey) ? settings.hotkey : DEFAULT_HOTKEY
+    const hotkeyMode = isHotkeyMode(settings?.hotkeyMode) && (settings.hotkeyMode !== 'hold' || hotkeyVirtualKeyGroups(hotkey)) ? settings.hotkeyMode : DEFAULT_HOTKEY_MODE
     return { ...library, settings: {
-      hotkey: typeof settings?.hotkey === 'string' && isValidHotkey(settings.hotkey) ? settings.hotkey : DEFAULT_HOTKEY,
+      hotkey, hotkeyMode,
       openAtLogin: settings?.openAtLogin === true, dataVersion: DATA_VERSION,
       onboardingCompleted: typeof settings?.onboardingCompleted === 'boolean' ? settings.onboardingCompleted : library.snippets.length > 0
     } }
