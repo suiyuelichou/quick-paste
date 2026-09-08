@@ -51,6 +51,16 @@ export interface SettingsUpdateResult {
   message?: string
 }
 
+export type UpdatePhase = 'unsupported' | 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'up-to-date' | 'error'
+
+export interface UpdateState {
+  phase: UpdatePhase
+  currentVersion: string
+  availableVersion?: string
+  progress?: number
+  message: string
+}
+
 export interface LibraryData {
   groups: Group[]
   snippets: Snippet[]
@@ -88,9 +98,14 @@ export interface QuickPasteApi {
   deleteGroup(id: string): Promise<AppData>
   reorderGroups(orderedIds: string[]): Promise<AppData>
   updateSettings(patch: Partial<Pick<Settings, 'hotkey' | 'openAtLogin'>>): Promise<SettingsUpdateResult>
+  getUpdateState(): Promise<UpdateState>
+  checkForUpdates(): Promise<UpdateState>
+  downloadUpdate(): Promise<UpdateState>
+  installUpdate(): Promise<UpdateState>
   hidePicker(): Promise<void>
   openManager(section?: 'snippets' | 'settings'): Promise<void>
   onDataChanged(callback: (data: AppData) => void): () => void
   onPickerShown(callback: () => void): () => void
   onManagerNavigate(callback: (section: 'snippets' | 'settings') => void): () => void
+  onUpdateState(callback: (state: UpdateState) => void): () => void
 }

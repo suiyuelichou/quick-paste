@@ -1,11 +1,13 @@
 import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, screen, Tray } from 'electron'
+import electronUpdater from 'electron-updater'
 import { join } from 'node:path'
 import { DataStore } from './store'
 import { setupLibraryIpc } from './library-ipc'
 import { captureTarget, typeIntoTarget } from './input-helper'
 import { isValidHotkey } from '../shared/search'
 import { clampPickerPosition, PICKER_SIZE } from '../shared/wheel'
-import type { AppData, PasteResult, SettingsUpdateResult, SnippetInput } from '../shared/types'
+import type { AppData, PasteResult, SettingsUpdateResult, SnippetInput, UpdateState } from '../shared/types'
+import { UpdateService, type UpdaterAdapter } from './updater'
 
 let pickerWindow: BrowserWindow | null = null
 let managerWindow: BrowserWindow | null = null
@@ -14,6 +16,8 @@ let store: DataStore
 let targetHandle: string | null = null
 let currentHotkey = ''
 let quitting = false
+let flushed = false
+let updateService: UpdateService
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) app.quit()
@@ -137,6 +141,11 @@ function broadcast(data: AppData): void {
   rebuildTray()
 }
 
+function broadcastUpdateState(state: UpdateState): void {
+  if (managerWindow && !managerWindow.isDestroyed()) managerWindow.webContents.send('update:state', state)
+  rebuildTray()
+}
+
 function registerHotkey(hotkey: string): boolean {
   if (currentHotkey === hotkey && globalShortcut.isRegistered(hotkey)) return true
   if (currentHotkey) globalShortcut.unregister(currentHotkey)
@@ -167,6 +176,16 @@ async function updateSettings(patch: { hotkey?: string; openAtLogin?: boolean })
   return { ok: true, settings: data.settings }
 }
 
+async function installDownloadedUpdate(): Promise<UpdateState> {
+  if (!updateService.canInstall()) return updateService.snapshot()
+  try { await store.flush() }
+  catch { return updateService.fail('安装更新前无法确认数据已保存，请检查磁盘空间后重试。') }
+  flushed = true
+  quitting = true
+  updateService.install()
+  return updateService.snapshot()
+}
+
 function rebuildTray(): void {
   if (!tray) return
   const settings = store.snapshot().settings
@@ -174,6 +193,9 @@ function rebuildTray(): void {
     { label: '打开选择器', accelerator: settings.hotkey, click: () => { void showPicker() } },
     { label: '管理常用文本', click: () => createManager('snippets') },
     { label: '设置', click: () => createManager('settings') },
+    updateService?.canInstall()
+      ? { label: '重启并安装更新', click: () => { void installDownloadedUpdate() } }
+      : { label: '检查更新', click: () => { createManager('settings'); void updateService?.check() } },
     { type: 'separator' },
     { label: '开机启动', type: 'checkbox', checked: settings.openAtLogin, click: (item) => { void updateSettings({ openAtLogin: item.checked }) } },
     { type: 'separator' },
@@ -213,6 +235,13 @@ function setupIpc(): void {
   ipcMain.handle('group:delete', async (_event, id: string) => { const data = await store.deleteGroup(id); broadcast(data); return data })
   ipcMain.handle('group:reorder', async (_event, ids: string[]) => { const data = await store.reorderGroups(ids); broadcast(data); return data })
   ipcMain.handle('settings:update', (_event, patch: { hotkey?: string; openAtLogin?: boolean }) => updateSettings(patch))
+  const requireNoArguments = (args: unknown[]): void => {
+    if (args.length > 0) throw new Error('无效的更新请求')
+  }
+  ipcMain.handle('update:get-state', (_event, ...args: unknown[]) => { requireNoArguments(args); return updateService.snapshot() })
+  ipcMain.handle('update:check', (_event, ...args: unknown[]) => { requireNoArguments(args); return updateService.check() })
+  ipcMain.handle('update:download', (_event, ...args: unknown[]) => { requireNoArguments(args); return updateService.download() })
+  ipcMain.handle('update:install', (_event, ...args: unknown[]) => { requireNoArguments(args); return installDownloadedUpdate() })
   ipcMain.handle('picker:hide', () => { dismissPicker() })
   ipcMain.handle('manager:open', (_event, section: 'snippets' | 'settings' = 'snippets') => {
     dismissPicker()
@@ -226,6 +255,16 @@ if (gotLock) {
     store = new DataStore(join(app.getPath('userData'), 'quick-paste-data.json'))
     await store.load()
     if (store.recoveryMessage) dialog.showMessageBoxSync({ type: 'warning', title: '已恢复备份', message: store.recoveryMessage })
+    const packagedUpdater = app.isPackaged ? electronUpdater.autoUpdater as UpdaterAdapter : null
+    updateService = new UpdateService(packagedUpdater, app.getVersion())
+    let announcedVersion = ''
+    updateService.subscribe((state) => {
+      broadcastUpdateState(state)
+      if (state.phase === 'available' && state.availableVersion !== announcedVersion) {
+        announcedVersion = state.availableVersion ?? ''
+        notify('Quick Paste 有可用更新', `新版本 ${state.availableVersion} 已发布，可在设置中下载。`)
+      }
+    })
     setupIpc()
     tray = new Tray(trayIcon())
     tray.setToolTip('Quick Paste · 快速输入常用文本')
@@ -234,13 +273,13 @@ if (gotLock) {
     if (!registerHotkey(store.snapshot().settings.hotkey)) notify('快捷键注册失败', '默认快捷键已被占用，请在设置中修改。')
     createPicker()
     if (!process.argv.includes('--hidden')) createManager('snippets')
+    setTimeout(() => { void updateService.check() }, 10000)
   }).catch((error: unknown) => {
     dialog.showErrorBox('Quick Paste 无法启动', error instanceof Error ? error.message : '无法读取本地数据')
     app.quit()
   })
 
   app.on('activate', () => createManager('snippets'))
-  let flushed = false
   app.on('before-quit', (event) => {
     quitting = true
     if (store && !flushed) {

@@ -13,11 +13,12 @@ An open-source Windows 10/11 x64 text snippet wheel. Press `Ctrl+Alt+Space`, sel
 - Persistent local editing draft, discard confirmation, and Ctrl+S.
 - JSON import preview with duplicate handling; export an entire library or one group.
 - Ten automatic backups, restoration, and backup-before-restore.
+- Update checks against published GitHub Releases, with manual download and restart confirmation.
 - Optional sample snippets and an onboarding practice field.
 
 ## Get started
 
-When a public release is available, download `Quick-Paste-1.1.1-x64.exe` from [Releases](https://github.com/suiyuelichou/quick-paste/releases). Otherwise build locally. Launch the app and follow the onboarding screen, or skip the samples and create your own snippets. Closing the manager keeps the app in the system tray.
+When a public release is available, download `Quick-Paste-1.2.0-x64.exe` from [Releases](https://github.com/suiyuelichou/quick-paste/releases). Otherwise build locally. Launch the app and follow the onboarding screen, or skip the samples and create your own snippets. Closing the manager keeps the app in the system tray.
 
 ## Build
 
@@ -45,4 +46,4 @@ Input uses Windows SendInput. Elevated windows, secure fields, games, remote des
 
 If the input helper times out, exits unexpectedly, or insertion is interrupted, some text may already have been entered. Check the target before retrying; Quick Paste never automatically resends the text. During long insertions, it checks the target and foreground window before each batch and stops subsequent input if focus has changed.
 
-CI runs on Windows. Version tags create a draft GitHub Release for maintainer review; they do not publish it automatically.
+Installed builds check published GitHub Releases for stable updates without uploading local snippets. Downloads and restart installation remain under user control. CI runs on Windows; version tags create an installer, update metadata, and a draft GitHub Release for maintainer review. Drafts are never offered to update clients and are not published automatically.

@@ -20,7 +20,7 @@ Quick Paste 是一款开源的 Windows 10/11 x64 常用文本工具，使用本�
 
 ## 安装与下载
 
-公开发布后，在 [Releases 页面](https://github.com/suiyuelichou/quick-paste/releases) 下载 `Quick-Paste-1.1.1-x64.exe`。如果当前还没有公开 Release，可以按照下方开发步骤自行打包。
+公开发布后，在 [Releases 页面](https://github.com/suiyuelichou/quick-paste/releases) 下载 `Quick-Paste-1.2.0-x64.exe`。如果当前还没有公开 Release，可以按照下方开发步骤自行打包。
 
 安装后从开始菜单启动 Quick Paste，首次打开会进入“一分钟上手”。关闭管理窗口后仍驻留托盘，从托盘菜单选择“退出”才会结束程序。
 
@@ -32,6 +32,7 @@ Quick Paste 是一款开源的 Windows 10/11 x64 常用文本工具，使用本�
 - **编辑保护：**草稿本地保留，切换文本前确认，支持 `Ctrl+S`；切换设置或重启后可以继续编辑。
 - **模板分享：**JSON 导入预览、重复检测、同名分组合并，全部或单分组导出。
 - **自动备份：**修改前备份，保留最近 10 份，支持恢复与撤回恢复。
+- **应用更新：**安装版启动后检查正式发布的新版本，也可在设置页手动检查、下载并选择何时重启安装。
 - **可选示例：**6 条客服、办公和提示词示例，加上真实输入练习框。
 
 ## 使用
@@ -40,7 +41,7 @@ Quick Paste 是一款开源的 Windows 10/11 x64 常用文本工具，使用本�
 2. 点击练习框或其他普通应用的输入框，按 `Ctrl+Alt+Space`，点击轮盘中的文本。
 3. 在文本库中编辑内容，拖动分组和条目安排轮盘位置。轮盘标签自动取正文第一行前 14 个字符。
 
-关闭管理页后应用仍驻留系统托盘。快捷键和开机启动可在“设置”中修改。为避免影响其他软件的焦点切换，快捷键必须包含修饰键，不会占用单独的 `Tab` 键。
+关闭管理页后应用仍驻留系统托盘。快捷键、开机启动和应用更新可在“设置”中管理。更新检查仅访问 GitHub Releases，不会上传本地文本；下载完成后由用户选择是否立即重启安装。为避免影响其他软件的焦点切换，快捷键必须包含修饰键，不会占用单独的 `Tab` 键。
 
 ## 导入、导出与恢复
 
@@ -73,11 +74,11 @@ npm run test:smoke
 npm run package
 ```
 
-需要 Windows 和 Node.js 22.12+，建议使用 Node.js 22 LTS。`npm run native:build` 使用 Windows .NET Framework C# 编译器构建 `native/InputHelper.cs`。安装包输出到 `dist/Quick-Paste-1.1.1-x64.exe`。
+需要 Windows 和 Node.js 22.12+，建议使用 Node.js 22 LTS。`npm run native:build` 使用 Windows .NET Framework C# 编译器构建 `native/InputHelper.cs`。安装包输出到 `dist/Quick-Paste-1.2.0-x64.exe`。
 
 `test:smoke` 需在构建后运行，会使用隔离目录验证真实 Electron 窗口、preload、IPC、导入导出和草稿保护，生成截图到 `.smoke/`。不会更改日常使用的数据，也不验证其他应用的原生输入兼容性。
 
-普通提交和 PR 触发 Windows CI；推送与版本号一致的 `v*` 标签触发安装包构建和草稿 Release，维护者检查后再公开。详见 [贡献指南](CONTRIBUTING.md)。
+普通提交和 PR 触发 Windows CI；推送与版本号一致的 `v*` 标签触发安装包、更新元数据和草稿 Release 构建，维护者检查并公开后才会提供给自动更新客户端。详见 [贡献指南](CONTRIBUTING.md)。
 
 ## 数据与限制
 

@@ -1,6 +1,6 @@
 {
   "name": "quick-paste",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "独立于系统剪贴板的 Windows 常用文本快速输入工具",
   "main": "out/main/index.js",
   "author": "Quick Paste",
@@ -26,6 +26,7 @@
     "preview": "electron-vite preview"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
@@ -52,6 +53,13 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "suiyuelichou",
+        "repo": "quick-paste"
+      }
+    ],
     "files": [
       "out/**/*"
     ],

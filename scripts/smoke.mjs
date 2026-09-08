@@ -84,6 +84,8 @@ try {
   assert.equal(await js('document.querySelector(".content-field textarea").value'), '草稿保护测试')
   await click('设置')
   await until(() => js('!!document.querySelector(".backup-list")'), 'settings')
+  await until(() => js('!!document.querySelector(".update-card")'), 'update settings')
+  assert.equal(await js('window.quickPaste.getUpdateState().then(state => state.phase)'), 'unsupported')
   await capture('settings')
   const exportedPath = resolve(directory, 'export.json')
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: exportedPath })
@@ -112,7 +114,7 @@ try {
   assert.equal(await js('window.quickPaste.getData().then(data => data.snippets[0].content)'), snapshot.snippets[0].content)
   await new Promise((done) => { manager.webContents.once('did-finish-load', done); manager.webContents.reload() })
   await until(() => js('document.querySelector(".content-field textarea")?.value === "草稿保护测试"'), 'draft after reload')
-  await writeFile(resolve(directory, 'report.json'), JSON.stringify({ ok: true, checks: ['onboarding', 'samples', 'fixed-wheel', 'draft-confirm', 'draft-across-settings', 'export', 'import-preview', 'duplicate-skip', 'minimum-window-width', 'restore-backup', 'draft-after-reload'], screenshotDirectory: directory }, null, 2))
+  await writeFile(resolve(directory, 'report.json'), JSON.stringify({ ok: true, checks: ['onboarding', 'samples', 'fixed-wheel', 'draft-confirm', 'draft-across-settings', 'update-settings', 'export', 'import-preview', 'duplicate-skip', 'minimum-window-width', 'restore-backup', 'draft-after-reload'], screenshotDirectory: directory }, null, 2))
   console.log(`Electron smoke passed. Screenshots: ${directory}`)
   app.quit()
 } catch (error) {

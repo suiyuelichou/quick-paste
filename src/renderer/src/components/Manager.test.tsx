@@ -15,6 +15,9 @@ beforeEach(() => {
   localStorage.clear()
   window.quickPaste = {
     onManagerNavigate: vi.fn(() => () => undefined), listBackups: vi.fn().mockResolvedValue([]),
+    onUpdateState: vi.fn(() => () => undefined),
+    getUpdateState: vi.fn().mockResolvedValue({ phase: 'unsupported', currentVersion: '1.1.1', message: '开发模式不检查更新。' }),
+    checkForUpdates: vi.fn(), downloadUpdate: vi.fn(), installUpdate: vi.fn(),
     saveSnippet: vi.fn(), exportLibrary: vi.fn().mockResolvedValue(true),
     completeOnboarding: vi.fn().mockResolvedValue(data),
     previewImport: vi.fn().mockResolvedValue({ token: 'preview', name: 'templates.json', groups: [{ name: '上手示例', count: 6 }], total: 6, duplicates: 6 }),
@@ -129,5 +132,18 @@ describe('导入与上手引导', () => {
     fireEvent.click(screen.getByRole('button', { name: '进入文本库' }))
     await waitFor(() => expect(window.quickPaste.completeOnboarding).toHaveBeenCalledWith(false))
     await waitFor(() => expect(screen.getByRole('button', { name: '创建文本' })).toBeVisible())
+  })
+})
+
+describe('应用更新', () => {
+  it('发现版本后由用户主动下载', async () => {
+    vi.mocked(window.quickPaste.getUpdateState).mockResolvedValue({ phase: 'available', currentVersion: '1.1.1', availableVersion: '1.2.0', message: '发现新版本 1.2.0' })
+    vi.mocked(window.quickPaste.downloadUpdate).mockResolvedValue({ phase: 'downloading', currentVersion: '1.1.1', availableVersion: '1.2.0', progress: 0, message: '正在下载更新 0%' })
+    render(<Manager data={data}/>)
+    fireEvent.click(screen.getByRole('button', { name: '设置' }))
+    expect(await screen.findByText('发现新版本 1.2.0')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '下载更新' }))
+    await waitFor(() => expect(window.quickPaste.downloadUpdate).toHaveBeenCalledOnce())
+    expect(screen.getByRole('progressbar', { name: '更新下载进度' })).toBeInTheDocument()
   })
 })

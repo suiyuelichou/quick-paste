@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppData, QuickPasteApi, Settings, SnippetInput } from '../shared/types'
+import type { AppData, QuickPasteApi, Settings, SnippetInput, UpdateState } from '../shared/types'
 
 const api: QuickPasteApi = {
   getData: () => ipcRenderer.invoke('data:get'),
@@ -18,6 +18,10 @@ const api: QuickPasteApi = {
   deleteGroup: (id: string) => ipcRenderer.invoke('group:delete', id),
   reorderGroups: (ids: string[]) => ipcRenderer.invoke('group:reorder', ids),
   updateSettings: (patch: Partial<Pick<Settings, 'hotkey' | 'openAtLogin'>>) => ipcRenderer.invoke('settings:update', patch),
+  getUpdateState: () => ipcRenderer.invoke('update:get-state'),
+  checkForUpdates: () => ipcRenderer.invoke('update:check'),
+  downloadUpdate: () => ipcRenderer.invoke('update:download'),
+  installUpdate: () => ipcRenderer.invoke('update:install'),
   hidePicker: () => ipcRenderer.invoke('picker:hide'),
   openManager: (section = 'snippets') => ipcRenderer.invoke('manager:open', section),
   onDataChanged: (callback: (data: AppData) => void) => {
@@ -34,6 +38,11 @@ const api: QuickPasteApi = {
     const listener = (_event: Electron.IpcRendererEvent, section: 'snippets' | 'settings'): void => callback(section)
     ipcRenderer.on('manager:navigate', listener)
     return () => ipcRenderer.removeListener('manager:navigate', listener)
+  },
+  onUpdateState: (callback: (state: UpdateState) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: UpdateState): void => callback(state)
+    ipcRenderer.on('update:state', listener)
+    return () => ipcRenderer.removeListener('update:state', listener)
   }
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AppData } from '../../../shared/types'
+import type { AppData, UpdateState } from '../../../shared/types'
 import type { AsyncRunner } from './Manager'
 import { DataPanel } from './DataPanel'
 
@@ -20,7 +20,16 @@ export function SettingsPanel({ data, run, setMessage }: { data: AppData; run: A
   const settings = data.settings
   const [hotkey, setHotkey] = useState(settings.hotkey)
   const [recording, setRecording] = useState(false)
+  const [updateState, setUpdateState] = useState<UpdateState | null>(null)
   useEffect(() => setHotkey(settings.hotkey), [settings.hotkey])
+  useEffect(() => {
+    let active = true
+    void window.quickPaste.getUpdateState().then((state) => { if (active) setUpdateState(state) }).catch(() => {
+      if (active) setUpdateState({ phase: 'error', currentVersion: '未知', message: '无法读取更新状态。' })
+    })
+    const unsubscribe = window.quickPaste.onUpdateState((state) => { if (active) setUpdateState(state) })
+    return () => { active = false; unsubscribe() }
+  }, [])
 
   const saveHotkey = async (): Promise<void> => {
     const result = await run(() => window.quickPaste.updateSettings({ hotkey }))
@@ -34,6 +43,28 @@ export function SettingsPanel({ data, run, setMessage }: { data: AppData; run: A
     if (!result) return
     setMessage(result.ok ? (value ? '已开启开机启动' : '已关闭开机启动') : result.message ?? '设置失败')
   }
+
+  const runUpdateAction = async (): Promise<void> => {
+    if (!updateState) return
+    const action = updateState.phase === 'available'
+      ? window.quickPaste.downloadUpdate
+      : updateState.phase === 'downloaded'
+        ? window.quickPaste.installUpdate
+        : window.quickPaste.checkForUpdates
+    const result = await run(() => action())
+    if (result) setUpdateState(result)
+  }
+
+  const updateButton = updateState?.phase === 'available'
+    ? '下载更新'
+    : updateState?.phase === 'downloaded'
+      ? '重启并安装'
+      : updateState?.phase === 'checking'
+        ? '正在检查…'
+        : updateState?.phase === 'downloading'
+          ? '正在下载…'
+          : '检查更新'
+  const updateBusy = !updateState || updateState.phase === 'unsupported' || updateState.phase === 'checking' || updateState.phase === 'downloading'
 
   return <main className="settings-page">
     <header><span className="eyebrow">应用偏好</span><h1>设置</h1><p>调整 Quick Paste 的唤起方式与后台行为。</p></header>
@@ -54,8 +85,16 @@ export function SettingsPanel({ data, run, setMessage }: { data: AppData; run: A
       <div className="setting-copy"><strong>开机时自动启动</strong><p>登录 Windows 后在系统托盘静默运行，选择器随时可用。</p></div>
       <label className="switch"><input type="checkbox" checked={settings.openAtLogin} onChange={(e) => void toggleLogin(e.target.checked)}/><span/></label>
     </section>
+    <section className="settings-card update-card">
+      <div className="setting-copy"><strong>应用更新</strong><p>{updateState?.message ?? '正在读取更新状态…'}</p></div>
+      {updateState?.phase === 'downloading' && <progress aria-label="更新下载进度" value={updateState.progress ?? 0} max="100"/>}
+      <div className="update-actions">
+        <small>正式发布的稳定版本才会显示在这里，不会上传本地文本。</small>
+        <button className="primary" disabled={updateBusy} onClick={() => void runUpdateAction()}>{updateButton}</button>
+      </div>
+    </section>
     <section className="settings-card notice-card"><div className="notice-icon">i</div><div><strong>本地数据与兼容性</strong><p>所有文本仅以未加密 JSON 文件保存在本机，不会上传，也不会读取或修改系统剪贴板。本工具不应作为密码管理器使用；管理员权限窗口、安全输入框、游戏及远程桌面可能拒绝自动输入。</p></div></section>
     <DataPanel data={data} run={run} setMessage={setMessage}/>
-    <footer className="about-row"><span>Quick Paste</span><span>版本 1.1.1 · Windows x64</span></footer>
+    <footer className="about-row"><span>Quick Paste</span><span>版本 {updateState?.currentVersion ?? '…'} · Windows x64</span></footer>
   </main>
 }
